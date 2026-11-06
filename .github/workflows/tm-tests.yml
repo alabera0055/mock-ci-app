@@ -1,0 +1,50 @@
+name: Test Management tests
+
+  on:
+    workflow_dispatch:
+      inputs:
+        space_id:
+          description: Test Management space id
+          required: true
+        execution_id:
+          description: Execution the results join; empty creates a new one
+          required: false
+          default: ''
+        run_id:
+          description: Test Management run id
+          required: false
+          default: ''
+
+  jobs:
+    test:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 22
+            cache: npm
+        - run: npm ci
+        - name: Type check
+          run: npx tsc --noEmit
+        - name: Write JUnit report
+          run: |
+            cat > results.xml <<'EOF'
+            <testsuites>
+              <testsuite name="mock-ci" tests="3" failures="1">
+                <testcase classname="auth" name="login.valid" time="1.4"/>
+                <testcase classname="auth" name="login.wrong-password" time="0.9"/>
+                <testcase classname="payments" name="card.success" time="3.2"><failure message="Card was declined"/></testcase>
+              </testsuite>
+            </testsuites>
+            EOF
+        - name: Send results to Test Management
+          env:
+            API_URL: ${{ secrets.XISUITE_API_URL }}
+            API_KEY: ${{ secrets.XISUITE_TM_KEY }}
+            SPACE_ID: ${{ inputs.space_id }}
+            EXECUTION_ID: ${{ inputs.execution_id }}
+          run: |
+            if [ -n "$EXECUTION_ID" ]; then path="executions/$EXECUTION_ID/junit/commit"; else path="import/results"; fi
+            curl --fail-with-body -sS -X POST "$API_URL/spaces/$SPACE_ID/test-management/$path" \
+              -H "Authorization: Bearer $API_KEY" -F "file=@results.xml;type=application/xml"
