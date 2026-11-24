@@ -1,61 +1,109 @@
-# Starts XISUITE's tests in Test Management after a deployment and waits for their result.
-name: XISUITE tests after deploy
+# Runs XISUITE's own tests when Test Management starts this workflow; the results come back as an artifact.
+name: XISUITE tests
 
 on:
-  # A host that reports deployments to GitHub (for example Vercel) starts it when a deploy succeeds.
-  deployment_status:
-  # A deploy workflow can call it as its last job.
-  workflow_call:
-    inputs:
-      environment:
-        type: string
-        required: false
-        default: production
-      sha:
-        type: string
-        required: false
-        default: ""
-    secrets:
-      TM_API_KEY:
-        required: true
   workflow_dispatch:
     inputs:
-      environment:
-        description: Environment the deploy went to
-        type: string
+      framework:
+        description: Test framework to run; auto picks it from package.json
         required: false
-        default: production
+        type: choice
+        default: auto
+        options:
+          - auto
+          - vitest
+          - jest
+          - playwright
+          - cypress
+          - mocha
+          - node-test
+      app_url:
+        description: Address of the deployed app for end-to-end tests; empty skips them
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
-  start-tests:
-    # Skipped until the repository has its deploy variables, and for deploys that did not succeed
-    # or did not go to production (preview deploys are reported too). The comparison ignores case.
-    if: (vars.TM_API_URL != '' || vars.XISUITE_URL != '') && vars.TM_SPACE_ID != '' && (github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'production'))
-    # One test start per deployed commit at a time; a newer deploy doesn't cancel a running check.
-    # Set on the job, so skipped status events never take the place of a waiting run.
-    concurrency:
-      group: xisuite-deploy-tests-${{ github.event.deployment.sha || inputs.sha || github.sha }}
-      cancel-in-progress: false
+  tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
+    env:
+      TM_APP_URL: ${{ inputs.app_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Start the tests in Test Management and wait for the result
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Pick the test framework
+        id: framework
         env:
-          TM_API_URL: ${{ vars.TM_API_URL || vars.XISUITE_URL }}
-          TM_SPACE_ID: ${{ vars.TM_SPACE_ID }}
-          TM_API_KEY: ${{ secrets.TM_API_KEY }}
-          TM_APP_URL: ${{ vars.TM_APP_URL }}
-          TM_WAIT_MINUTES: ${{ vars.TM_WAIT_MINUTES }}
-          TM_DEPLOY_ENVIRONMENT: ${{ github.event.deployment.environment || inputs.environment || 'production' }}
-          # The script reads these GitLab names; here they carry the GitHub run.
-          CI_COMMIT_SHA: ${{ github.event.deployment.sha || inputs.sha || github.sha }}
-          CI_PIPELINE_ID: ${{ github.run_id }}
-          CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/start-xisuite-tests.mjs
+          FRAMEWORK: ${{ inputs.framework }}
+        run: |
+          if [ -z "$FRAMEWORK" ] || [ "$FRAMEWORK" = "auto" ]; then
+            FRAMEWORK=$(node -e 'const p = require("./package.json"); const d = { ...p.dependencies, ...p.devDependencies }; const m = { vitest: "vitest", jest: "jest", "@playwright/test": "playwright", cypress: "cypress", mocha: "mocha" }; console.log(m[Object.keys(m).find(k => d[k])] ?? "node-test")')
+          fi
+          case "$FRAMEWORK" in
+            vitest|jest|playwright|cypress|mocha|node-test) ;;
+            *)
+              echo "::error::The framework input is not a supported test framework"
+              exit 1
+              ;;
+          esac
+          echo "name=$FRAMEWORK" >> "$GITHUB_OUTPUT"
+          echo "Test framework: $FRAMEWORK"
+      - name: Install the Playwright browsers
+        if: steps.framework.outputs.name == 'playwright'
+        run: npx playwright install --with-deps
+      - name: Check the Cypress install
+        if: steps.framework.outputs.name == 'cypress'
+        # pnpm skips Cypress's own download step, so the binary is fetched here.
+        run: |
+          npx cypress install
+          npx cypress verify
+      - name: Run the tests
+        env:
+          FRAMEWORK: ${{ steps.framework.outputs.name }}
+        run: |
+          # node:test does not create the report folder itself.
+          mkdir -p reports/junit
+          case "$FRAMEWORK" in
+            vitest)
+              npx vitest run --reporter=default --reporter=json --outputFile.json=reports/report.json
+              ;;
+            jest)
+              npx jest --ci --json --outputFile=reports/report.json
+              ;;
+            playwright)
+              PLAYWRIGHT_JSON_OUTPUT_NAME=reports/report.json npx playwright test --reporter=list,json
+              ;;
+            cypress)
+              npx cypress run --reporter junit --reporter-options "mochaFile=reports/junit/[hash].xml"
+              ;;
+            mocha)
+              npx mocha --reporter json --reporter-option output=reports/report.json
+              ;;
+            node-test)
+              node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/junit/node.xml
+              ;;
+          esac
+      - name: One result per test file
+        if: always()
+        env:
+          FRAMEWORK: ${{ steps.framework.outputs.name }}
+        run: |
+          REPORT=reports/report.json
+          case "$FRAMEWORK" in
+            cypress|node-test) REPORT=reports/junit ;;
+          esac
+          node scripts/junit-per-file.mjs "$REPORT" reports/per-file.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xisuite-test-results
+          path: reports/per-file.xml
