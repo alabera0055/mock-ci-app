@@ -1,0 +1,61 @@
+# Starts XISUITE's tests in Test Management after a deployment and waits for their result.
+name: XISUITE tests after deploy
+
+on:
+  # A host that reports deployments to GitHub (for example Vercel) starts it when a deploy succeeds.
+  deployment_status:
+  # A deploy workflow can call it as its last job.
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: false
+        default: production
+      sha:
+        type: string
+        required: false
+        default: ""
+    secrets:
+      TM_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment the deploy went to
+        type: string
+        required: false
+        default: production
+
+permissions:
+  contents: read
+
+jobs:
+  start-tests:
+    # Skipped until the repository has its deploy variables, and for deploys that did not succeed
+    # or did not go to production (preview deploys are reported too). The comparison ignores case.
+    if: (vars.TM_API_URL != '' || vars.XISUITE_URL != '') && vars.TM_SPACE_ID != '' && (github.event_name != 'deployment_status' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'production'))
+    # One test start per deployed commit at a time; a newer deploy doesn't cancel a running check.
+    # Set on the job, so skipped status events never take the place of a waiting run.
+    concurrency:
+      group: xisuite-deploy-tests-${{ github.event.deployment.sha || inputs.sha || github.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Start the tests in Test Management and wait for the result
+        env:
+          TM_API_URL: ${{ vars.TM_API_URL || vars.XISUITE_URL }}
+          TM_SPACE_ID: ${{ vars.TM_SPACE_ID }}
+          TM_API_KEY: ${{ secrets.TM_API_KEY }}
+          TM_APP_URL: ${{ vars.TM_APP_URL }}
+          TM_WAIT_MINUTES: ${{ vars.TM_WAIT_MINUTES }}
+          TM_DEPLOY_ENVIRONMENT: ${{ github.event.deployment.environment || inputs.environment || 'production' }}
+          # The script reads these GitLab names; here they carry the GitHub run.
+          CI_COMMIT_SHA: ${{ github.event.deployment.sha || inputs.sha || github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+          CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/start-xisuite-tests.mjs
