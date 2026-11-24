@@ -21,14 +21,14 @@ test('ZZNEW-T1 Login with right password', async ({ page }) => {
   await expect(page.getByText(EMAIL)).toBeVisible()
 })
 
-test('ZZNEW-T2 Login ignores email case', async ({ request }) => {
-  link('ZZNEW-T2')
+test('TESTSAS-T16 Login ignores email case', async ({ request }) => {
+  link('TESTSAS-T16')
 
   expect((await logIn(request, '  TEST@Yopmail.COM ')).status()).toBe(200)
 })
 
-test('ZZNEW-T3 Login refuses wrong password', async ({ request }) => {
-  link('ZZNEW-T3')
+test('TESTSAS-T17 Login refuses wrong password', async ({ request }) => {
+  link('TESTSAS-T17')
 
   const response = await logIn(request, EMAIL, 'Wrong@123')
 
@@ -36,15 +36,15 @@ test('ZZNEW-T3 Login refuses wrong password', async ({ request }) => {
   expect(((await response.json()) as { error: string }).error).toBe('Wrong email or password')
 })
 
-test('ZZNEW-T4 Login refuses unknown email', async ({ request }) => {
-  link('ZZNEW-T4')
+test('TESTSAS-T18 Login refuses unknown email', async ({ request }) => {
+  link('TESTSAS-T18)
 
   // Fails on purpose: the app answers 401, this expects 200.
   expect((await logIn(request, 'nobody@yopmail.com')).status()).toBe(200)
 })
 
-test('ZZNEW-T5 Login locks after 5 tries', async ({ request }) => {
-  link('ZZNEW-T5')
+test('TESTSAS-T19 Login locks after 5 tries', async ({ request }) => {
+  link('TESTSAS-T19')
 
   // A good login first, so earlier wrong tries don't count.
   await logIn(request)
@@ -57,8 +57,8 @@ test('ZZNEW-T5 Login locks after 5 tries', async ({ request }) => {
   expect((await logIn(request)).status()).toBe(429)
 })
 
-test('ZZNEW-T6 Login unlocks after 1 minute', async ({ request }) => {
-  link('ZZNEW-T6')
+test('TESTSAS-T20 Login unlocks after 1 minute', async ({ request }) => {
+  link('TESTSAS-T20')
   test.setTimeout(120_000)
 
   await new Promise(resolve => setTimeout(resolve, 61_000))
