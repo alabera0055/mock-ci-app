@@ -266,7 +266,37 @@ const toCase = file => {
   return { path, time, state: 'passed', body: '' }
 }
 
-const cases = report.testResults.map(toCase).sort((a, b) => a.path.localeCompare(b.path))
+// With XISUITE_RESULTS=per-test every test is its own result, named "<file> › <test name>".
+const perTest = process.env.XISUITE_RESULTS === 'per-test'
+
+const toTestCases = file => {
+  const whole = toCase(file)
+  const tests = file.assertionResults ?? []
+
+  // A file that could not run has no tests of its own, so it stays one result.
+  if (file.testExecError || tests.length === 0) return [whole]
+
+  return tests.map(test => {
+    const state = test.status === 'failed' ? 'failed' : SKIPPED.has(test.status) ? 'skipped' : 'passed'
+    const message = clean((test.failureMessages ?? []).join('\n\n'))
+
+    return {
+      path: `${whole.path} › ${clean(test.fullName ?? test.title)}`,
+      time: Math.max(0, (test.duration ?? 0) / 1000).toFixed(3),
+      state,
+      body:
+        state === 'failed'
+          ? `<failure message="Test failed">${escape(cap(message))}</failure>`
+          : state === 'skipped'
+            ? '<skipped/>'
+            : ''
+    }
+  })
+}
+
+const cases = (perTest ? report.testResults.flatMap(toTestCases) : report.testResults.map(toCase)).sort((a, b) =>
+  a.path.localeCompare(b.path)
+)
 const count = state => cases.filter(item => item.state === state).length
 const total = cases.reduce((sum, item) => sum + Number(item.time), 0).toFixed(3)
 const attributes = `tests="${cases.length}" failures="${count('failed')}" skipped="${count('skipped')}" time="${total}"`
@@ -283,4 +313,4 @@ const xml = [
 
 mkdirSync(dirname(output), { recursive: true })
 writeFileSync(output, xml)
-console.log(`Wrote ${cases.length} test files to ${output} (${count('failed')} failed, ${count('skipped')} skipped)`)
+console.log(`Wrote ${cases.length} ${perTest ? 'tests' : 'test files'} to ${output} (${count('failed')} failed, ${count('skipped')} skipped)`)
