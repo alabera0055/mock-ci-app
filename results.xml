@@ -1,0 +1,54 @@
+<testsuites id="" name="" tests="12" failures="0" skipped="12" errors="0" time="0.01191300000000001">
+<testsuite name="login.spec.ts" timestamp="2026-11-06T15:50:43.121Z" hostname="" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="ZZNEW-T1 Login with right password" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ZZNEW-T2 Login ignores email case" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ZZNEW-T3 Login refuses wrong password" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ZZNEW-T4 Login refuses unknown email" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ZZNEW-T5 Login locks after 5 tries" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="ZZNEW-T6 Login unlocks after 1 minute" classname="login.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="mock-ci.spec.ts" timestamp="2026-11-06T15:50:43.121Z" hostname="" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="home page sends a visitor to log in" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="register accepts only the test account" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="job list API needs a login" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="starting a job records it as running" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="a started job appears on the dashboard" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="a wrong token is refused" classname="mock-ci.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>
