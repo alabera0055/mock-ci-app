@@ -1,18 +1,26 @@
-# .gitlab-ci.yml — add XISUITE_TM_KEY as a masked CI/CD variable
-# XISUITE_TEST_KEYS lists the tests to run; it is empty when every test should run.
-tests:
-  image: mcr.microsoft.com/playwright:v1.62.1-noble # match your @playwright/test version
-  script:
-    - npm ci
-    - PLAYWRIGHT_JUNIT_OUTPUT_NAME=results.xml npx playwright test --reporter=junit
-  after_script:
-    - |
-      SPACE="${XISUITE_SPACE_ID:-eb27a60d-5cfe-4038-b7bb-efcd1f70ff02}"
-      if [ -n "$XISUITE_EXECUTION_ID" ]; then
-        URL=" https://sworn-hangout-flight.ngrok-free.dev/api/v1/spaces/$SPACE/test-management/executions/$XISUITE_EXECUTION_ID/junit/commit"
-      else
-        URL=" https://sworn-hangout-flight.ngrok-free.dev/api/v1/spaces/$SPACE/test-management/import/results"
-        [ -n "$XISUITE_PLAN_ID" ] && EXTRA="-F plan_id=$XISUITE_PLAN_ID"
-      fi
-      [ -n "$XISUITE_RUN_ID" ] && RUN="-F automation_run_id=$XISUITE_RUN_ID"
-      curl --fail-with-body -H "Authorization: Bearer $XISUITE_TM_KEY" -F file=@results.xml $EXTRA $RUN "$URL"
+name: TM tests
+  on:
+    workflow_dispatch:
+      inputs:
+        sha:
+          description: Commit to test; empty tests the branch
+          required: false
+          default: ''
+  jobs:
+    tests:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            ref: ${{ inputs.sha || github.ref }}
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 22
+        - run: npm ci
+        - run: npx playwright install --with-deps chromium
+        - run: npx playwright test
+        - uses: actions/upload-artifact@v4
+          if: always()
+          with:
+            name: test-results
+            path: results.xml
