@@ -97,3 +97,59 @@ pre {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+main.narrow {
+  max-width: 420px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.form label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.form input {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+
+.form input:focus {
+  outline: 2px solid var(--running);
+  outline-offset: 1px;
+}
+
+.form p {
+  margin: 0;
+}
+
+.button {
+  padding: 8px 14px;
+  border: 1px solid var(--running);
+  border-radius: 6px;
+  background: var(--running);
+  color: var(--card);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button.secondary {
+  border-color: var(--line);
+  background: var(--card);
+  color: var(--text);
+}
