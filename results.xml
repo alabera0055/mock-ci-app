@@ -1,26 +1,26 @@
 <testsuites id="" name="" tests="12" failures="0" skipped="12" errors="0" time="0.01191300000000001">
 <testsuite name="login.spec.ts" timestamp="2026-11-06T15:50:43.121Z" hostname="" tests="6" failures="0" skipped="6" time="0" errors="0">
-<testcase name="ZZNEW-T1 Login with right password" classname="login.spec.ts">
+<testcase name="TESTSAS-T16 Login with right password" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
-<testcase name="ZZNEW-T2 Login ignores email case" classname="login.spec.ts">
+<testcase name="TESTSAS-T17 Login ignores email case" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
-<testcase name="ZZNEW-T3 Login refuses wrong password" classname="login.spec.ts">
+<testcase name="TESTSAS-T18 Login refuses wrong password" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
-<testcase name="ZZNEW-T4 Login refuses unknown email" classname="login.spec.ts">
+<testcase name="TESTSAS-T19 Login refuses unknown email" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
-<testcase name="ZZNEW-T5 Login locks after 5 tries" classname="login.spec.ts">
+<testcase name="TESTSAS-T20 Login locks after 5 tries" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
-<testcase name="ZZNEW-T6 Login unlocks after 1 minute" classname="login.spec.ts">
+<testcase name="TESTSAS-T21 Login unlocks after 1 minute" classname="login.spec.ts">
 <skipped>
 </skipped>
 </testcase>
