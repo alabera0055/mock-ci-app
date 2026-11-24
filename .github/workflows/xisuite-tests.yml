@@ -34,6 +34,7 @@ jobs:
       TM_APP_URL: ${{ inputs.app_url }}
       QA_EMAIL: ${{ secrets.QA_EMAIL }}
       QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+      XISUITE_RESULTS: per-test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
